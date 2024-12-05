@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Henna Pattern Generator - Function Based</title>
+    
+    <!-- 
+    CSS STYLES
+    In a larger application, this would be in styles/main.css 
+    -->
+    <style>
+        /* Base styles */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Layout containers */
+        .container {
+            display: flex;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .main-controls {
+            flex: 0 0 400px;  /* Fixed width for controls */
+        }
+
+        .pattern-panel {
+            flex: 1;          /* Takes remaining space */
+            min-width: 300px;
+            border-left: 1px solid #ccc;
+            padding-left: 20px;
+        }
+
+        /* Canvas styling */
+        .canvas-row {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .canvas-container {
+            border: 1px solid #be1414;
+            border-radius: 4px;
+            padding: 10px;
+        }
+
+        .canvas-container h3 {
+            margin: 0 0 10px 0;
+            text-align: center;
+            font-size: 1.1em;
+            color: #333;
+        }
+
+        /* Control styling */
+        .controls {
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+            width: 100%;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        select {
+            padding: 5px;
+            width: 200px;
+            margin-bottom: 10px;
+        }
+
+        .value-display {
+            display: inline-block;
+            min-width: 40px;
+            text-align: right;
+            margin-left: 10px;
+        }
+
+        /* Pattern list styling */
+        .pattern-list {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 10px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .pattern-item {
+            font-family: monospace;
+            white-space: pre-wrap;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border: 1px solid #eee;
+            border-radius: 4px;
+            font-size: 0.9em;
+            line-height: 1.4;
+        }
+
+        /* Control-specific styling */
+        .point-control {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .point-control input[type="range"] {
+            width: 150px;
+        }
+
+        .control-hint {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .transform-controls {
+            border-top: 1px solid #ccc;
+            margin-top: 20px;
+            padding-top: 10px;
+        }
+
+        .transform-controls h3 {
+            margin: 0 0 15px 0;
+            color: #333;
+            font-size: 1.1em;
+        }
+
+        /* Header styling */
+        .pattern-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .pattern-header h2 {
+            margin: 0;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- 
+    MAIN UI STRUCTURE 
+    In a larger application, this would be in templates/main.html
+    -->
+    <div class="container">
+        <!-- Left column - Pattern Controls -->
+        <div class="main-controls">
+            <!-- Path Type Selection -->
+            <div class="control-group">
+                <label for="pathType">Path Type:</label>
+                <select id="pathType">
+                    <option value="linear">Linear (Fixed Spacing)</option>
+                    <option value="projectedLine">Linear (2D Projection)</option>
+                    <option value="sine">Sine Wave</option>
+                    <option value="spiral">Spiral</option>
+                    <option value="circle">Circle</option>
+                    <option value="bezier">Bézier Curve</option>
+                    <option value="spherical">Spherical</option>
+                    <option value="stereo3dSphereTo2d">Stereographic Projection</option>
+                </select>
+            </div>
+
+            <!-- Points Control -->
+            <div class="control-group">
+                <label>Points: <span id="pointsValue">20</span></label>
+                <input type="range" id="points" min="2" max="100" value="20">
+                <div class="control-hint">Number of points along the path</div>
+            </div>
+
+            <!-- Transform Controls -->
+            <div class="transform-controls">
+                <h3>Transform Controls</h3>
+                
+                <div class="control-group">
+                    <label>Scale: <span id="scaleValue">100</span>%</label>
+                    <input type="range" id="scale" min="10" max="500" value="100">
+                    <div class="control-hint">Scale the entire path</div>
+                </div>
+
+                <div class="control-group">
+                    <label>Rotation: <span id="rotationValue">0</span>°</label>
+                    <input type="range" id="rotation" min="0" max="360" value="0">
+                    <div class="control-hint">Rotate around center point</div>
+                </div>
+
+                <div class="control-group">
+                    <label>X Offset: <span id="xOffsetValue">0</span></label>
+                    <input type="range" id="xOffset" min="-200" max="200" value="0">
+                    <div class="control-hint">Horizontal position adjustment</div>
+                </div>
+
+                <div class="control-group">
+                    <label>Y Offset: <span id="yOffsetValue">0</span></label>
+                    <input type="range" id="yOffset" min="-200" max="200" value="0">
+                    <div class="control-hint">Vertical position adjustment</div>
+                </div>
+            </div>
+
+            <!-- Path-specific Controls -->
+            <!-- Projection Controls -->
+            <div class="control-group" id="projectionControls" style="display: none;">
+                <label>Projection Radius: <span id="projectionRadiusValue">100</span></label>
+                <input type="range" id="projectionRadius" min="50" max="200" value="100" step="10">
+                <div class="control-hint">Controls spacing distribution along line</div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="doubleSided">
+                        Double-sided Projection
+                    </label>
+                    <div class="control-hint">Project from center outward with symmetric spacing</div>
+                </div>
+            </div>
+
+            <!-- Bezier Controls -->
+            <div class="control-group" id="bezierControls" style="display: none;">
+                <label>Bézier Type:</label>
+                <select id="bezierType">
+                    <option value="cubic">Cubic Bézier</option>
+                    <option value="quadratic">Quadratic Bézier</option>
+                </select>
+
+                <div class="control-group">
+                    <label>Control Point 1:</label>
+                    <div class="point-control">
+                        X: <input type="range" id="control1X" min="-140" max="140" value="-70">
+                        Y: <input type="range" id="control1Y" min="-140" max="140" value="-100">
+                    </div>
+                </div>
+
+                <div class="control-group" id="control2Group">
+                    <label>Control Point 2:</label>
+                    <div class="point-control">
+                        X: <input type="range" id="control2X" min="-140" max="140" value="70">
+                        Y: <input type="range" id="control2Y" min="-140" max="140" value="-100">
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="useProjection">
+                        Use Projection Spacing
+                    </label>
+                </div>
+            </div>
+
+            <!-- Spiral Controls -->
+            <div class="control-group" id="spiralControls" style="display: none;">
+                <label>Spiral Type:</label>
+                <select id="spiralType">
+                    <option value="logarithmic">Logarithmic</option>
+                    <option value="golden">Golden</option>
+                    <option value="arithmetic">Arithmetic (Original)</option>
+                </select>
+
+                <label>Growth Rate: <span id="growthRateValue">0.15</span></label>
+                <input type="range" id="growthRate" min="0.05" max="0.25" step="0.01" value="0.15">
+
+                <label>Revolutions: <span id="spiralRevsValue">1.5</span></label>
+                <input type="range" id="spiralRevs" min="0.5" max="3" step="0.1" value="1.5">
+            </div>
+
+            <!-- Spherical Controls -->
+            <div class="control-group" id="sphericalControls" style="display: none;">
+                <div class="control-group">
+                    <label>Revolutions: <span id="sphereRevsValue">1</span></label>
+                    <input type="range" id="sphereRevs" min="0.5" max="5" step="0.5" value="1">
+                </div>
+
+                <div class="control-group">
+                    <label>Radius: <span id="sphereRadiusValue">100</span></label>
+                    <input type="range" id="sphereRadius" min="50" max="150" value="100">
+                </div>
+            </div>
+
+            <!-- Stereographic Controls -->
+            <div class="control-group" id="stereoControls" style="display: none;">
+                <div class="control-group">
+                    <label>Projection Scale: <span id="projectionScaleValue">0.5</span></label>
+                    <input type="range" id="projectionScale" min="0.1" max="1.0" step="0.1" value="0.5">
+                </div>
+
+                <div class="control-group">
+                    <label>Revolutions: <span id="stereoRevolutionsValue">1</span></label>
+                    <input type="range" id="stereoRevolutions" min="0.5" max="5" step="0.5" value="1">
+                </div>
+            </div>
+        </div>
+
+        <!-- Right column - Pattern Panel -->
+        <div class="pattern-panel">
+            <!-- Shape Controls -->
+            <div class="control-group">
+                <label for="shapeType">Shape Type:</label>
+                <select id="shapeType">
+                    <option value="dot">Dot</option>
+                    <option value="circle">Circle</option>
+                    <option value="teardrop">Teardrop</option>
+                    <option value="paisley">Paisley</option>
+                    <option value="petal">Petal</option>
+                    <option value="pattern">Saved Patterns</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label>Shape Size: <span id="shapeSizeValue">5</span></label>
+                <input type="range" id="shapeSize" min="1" max="50" value="5">
+                <div class="control-hint">Base size for all shapes</div>
+            </div>
+
+            <div class="control-group">
+                <label>
+                    Shape Rotation: <span id="shapeRotationValue">0</span>°
+                    <input type="range" id="shapeRotation" min="0" max="360" value="0" step="15">
+                </label>
+                <div class="control-hint">Rotate shape around its center</div>
+            </div>
+
+            <!-- Pattern-specific Controls -->
+            <div class="control-group" id="patternShapeControls" style="display: none;">
+                <label>Pattern Scale: <span id="patternScaleValue">0.3</span></label>
+                <input type="range" id="patternScale" min="0.1" max="1.0" step="0.05" value="0.3">
+                <div class="control-hint">Additional scale factor for pattern shapes</div>
+            </div>
+
+            <!-- Pattern List -->
+            <div class="pattern-header">
+                <h2>Saved Patterns</h2>
+                <button id="savePattern">Save Current</button>
+                <button id="exportCombined">Export Combined Patterns</button>
+            </div>
+            <div class="pattern-list" id="patternList">
+                <!-- Pattern items will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Canvas Display -->
+    <div class="canvas-row">
+        <div class="canvas-container">
+            <h3>Current Pattern</h3>
+            <svg id="hennaPattern" width="400" height="400" viewBox="0 0 400 400"></svg>
+        </div>
+        <div class="canvas-container">
+            <h3>Saved Patterns</h3>
+            <svg id="hennaPattern2" width="400" height="400" viewBox="0 0 400 400"></svg>
+        </div>
+    </div>
+
+    <!-- 
+    JAVASCRIPT CORE
+    In a larger application, this would be split into multiple files
+    -->
+    <script>
+
+
+
+
+        
+/**
+ * Core Constants and State Management
+ * This section defines global constants, state, and core helper functions
+ * that are used throughout the application.
+ */
+
+// Application Constants
+const VISUALIZATION_CENTER_X = 200;  // Center X coordinate for SVG canvas
+const VISUALIZATION_CENTER_Y = 200;  // Center Y coordinate for SVG canvas
+
+// Global State
+let currentPattern;        // Holds the currently active pattern configuration
+const savedPatterns = [];  // Array of all saved pattern configurations
+
+
+
+
+
+/**
+ * Core Helper Functions
+ * These functions provide basic utilities used across different parts of the application
+ */
+
+/**
+ * Returns the visualization center coordinates
+ * Used by path functions to properly center their output for a variable canvas width
+ */
+const getVisualizationCenter = () => ({
+    x: VISUALIZATION_CENTER_X,
+    y: VISUALIZATION_CENTER_Y
+});
+
+/**
+ * Applies geometric transformations to a set of points
+ * Core transformation function called by generatePoints to process all path outputs
+ */
+function transformPoints(points, params = {}) {
+    const {
+        scale = 1,
+        rotation = 0,
+        xOffset = 0,
+        yOffset = 0
+    } = params;
+    
+    const rotationRad = rotation * Math.PI / 180;
+    
+    return points.map(point => {
+        // Scale
+        const scaledX = point.x * scale;
+        const scaledY = point.y * scale;
+        
+        // Rotate
+        const rotatedX = scaledX * Math.cos(rotationRad) - scaledY * Math.sin(rotationRad);
+        const rotatedY = scaledX * Math.sin(rotationRad) + scaledY * Math.cos(rotationRad);
+        
+        // Transform to visualization space and apply offset
+        return {
+            x: VISUALIZATION_CENTER_X + rotatedX + xOffset,
+            y: VISUALIZATION_CENTER_Y + rotatedY + yOffset,
+            angle: point.angle + rotationRad
+        };
+    });
+}
+
+/**
+ * Generates an array of points along a path function
+ * Bridge between path functions and visualization, called whenever a path needs to be rendered
+ */
+function generatePoints(pathFn, numPoints = 50, transformParams = {}) {
+    const points = [];
+    for (let i = 0; i < numPoints; i++) {
+        const t = i / (numPoints - 1);
+        points.push(pathFn(t));
+    }
+    return transformPoints(points, transformParams);
+}
+
+
+
+
+
+/**
+ * Pattern Management
+ *
+ * A pattern consists of a specific number of N shapes along a path. Those shapes can be
+ * core Mehndi shapes, another pattern, or even a list of patterns creating the 
+ * recursive beauty seen in mandala structures.
+ *
+ * Functions for creating, formatting, and managing pattern configurations.
+ * These functions handle the data structure that represents a complete pattern,
+ * including its path, shape, and transformation parameters.
+ */
+
+/**
+ * Creates a formatted string representation of a pattern's parameters
+ * Used by the UI to display saved patterns in a consistent, readable format in the pattern list
+ *
+ * Ex: 
+ *     path    shape
+ * #1: circle | dot | L:280 S:1 R:0° X:0 Y:0 N:20 SS:5 SR:0° W:2 P:F
+ */
+ function formatPatternDisplay(pattern, index) {
+    const params = [
+        `L:${pattern.path.params.length}`,          // Length
+        `S:${pattern.transform.scale}`,             // Scale
+        `R:${pattern.transform.rotation}°`,         // Rotation
+        `X:${pattern.transform.xOffset}`,           // X offset
+        `Y:${pattern.transform.yOffset}`,           // Y offset
+        `N:${pattern.sampling.numPoints}`,          // Number of points
+        `SS:${pattern.shape.params.size}`,          // Shape size
+        `SR:${pattern.shape.params.rotation || 0}°`, // Shape rotation
+        `W:${pattern.shape.base_stroke}`,           // Base stroke width
+        `P:${pattern.sampling.useProjection ? 'T' : 'F'}`  // Projection enabled
+    ].join(' ');
+    
+    return `#${index + 1}: ${pattern.path.type} | ${pattern.shape.type} | ${params}`;
+}
+
+/**
+ * Extracts path-specific parameters from UI controls based on path type
+ * Called during pattern updates to gather current path configuration from the interface
+ */
+function getPathParams(pathType) {
+    switch(pathType) {
+        case 'sine':
+            return {
+                length: 280,
+                amplitude: 50,
+                frequency: 2,
+                phase: 0
+            };
+        case 'spiral':
+            return {
+                type: document.getElementById('spiralType').value,
+                growthRate: parseFloat(document.getElementById('growthRate').value),
+                revolutions: parseFloat(document.getElementById('spiralRevs').value)
+            };
+        case 'bezier':
+            const params = {
+                type: document.getElementById('bezierType').value,
+                control1: {
+                    x: parseInt(document.getElementById('control1X').value),
+                    y: parseInt(document.getElementById('control1Y').value)
+                }
+            };
+            if (params.type === 'cubic') {
+                params.control2 = {
+                    x: parseInt(document.getElementById('control2X').value),
+                    y: parseInt(document.getElementById('control2Y').value)
+                };
+            }
+            return params;
+        case 'spherical':
+            return {
+                radius: parseInt(document.getElementById('sphereRadius').value),
+                revolutions: parseFloat(document.getElementById('sphereRevs').value)
+            };
+        default:
+            return {
+                length: 280
+            };
+    }
+}
+
+/**
+ * Updates the displayed list of saved patterns in the UI
+ * Called whenever a pattern is saved or the pattern list needs refreshing
+ */
+function updatePatternList() {
+    const patternList = document.getElementById('patternList');
+    patternList.innerHTML = '';
+    
+    savedPatterns.forEach((pattern, index) => {
+        const patternItem = document.createElement('div');
+        patternItem.className = 'pattern-item';
+        patternItem.textContent = formatPatternDisplay(pattern, index);
+        patternList.appendChild(patternItem);
+    });
+}
+
+/**
+ * Captures the current UI state into a pattern configuration object
+ * Called when saving patterns or updating the visualization to ensure pattern state consistency
+ */
+/**
+ * Creates a formatted string representation of a pattern's parameters
+ * Used by the UI to display saved patterns in a concise, readable format
+ */
+ function formatPatternDisplay(pattern, index) {
+    const params = [
+        `L:${pattern.path.params.length}`,          // Length
+        `S:${pattern.transform.scale}`,             // Scale
+        `R:${pattern.transform.rotation}°`,         // Rotation
+        `X:${pattern.transform.xOffset}`,           // X offset
+        `Y:${pattern.transform.yOffset}`,           // Y offset
+        `N:${pattern.sampling.numPoints}`,          // Number of points
+        `SS:${pattern.shape.params.size}`,          // Shape size
+        `SR:${pattern.shape.params.rotation || 0}°`, // Shape rotation
+        `W:${pattern.shape.params.base_stroke}`,    // Base stroke width - moved to params
+        `P:${pattern.sampling.useProjection ? 'T' : 'F'}`  // Projection enabled
+    ].join(' ');
+    
+    return `#${index + 1}: ${pattern.path.type} | ${pattern.shape.type} | ${params}`;
+}
+
+/**
+ * Captures the current UI state into a pattern configuration object
+ * Called when saving patterns or updating the visualization
+ */
+/**
+ * Captures the current UI state into a pattern configuration object
+ * Called when saving patterns or updating the visualization
+ */
+ function captureCurrentPattern() {
+    const pathType = document.getElementById('pathType').value;
+    const numPoints = parseInt(document.getElementById('points').value);
+    const shapeType = document.getElementById('shapeType').value;
+    
+    return {
+        path: {
+            type: pathType,
+            params: getPathParams(pathType)
+        },
+        transform: {
+            scale: parseFloat(document.getElementById('scale').value) / 100,
+            rotation: parseFloat(document.getElementById('rotation').value),
+            xOffset: parseFloat(document.getElementById('xOffset').value),
+            yOffset: parseFloat(document.getElementById('yOffset').value)
+        },
+        sampling: {
+            numPoints: numPoints,
+            useProjection: document.getElementById('useProjection')?.checked || false
+        },
+        shape: {
+            type: shapeType,
+            params: {
+                size: parseFloat(document.getElementById('shapeSize').value),
+                base_stroke: 2,
+                rotation: parseFloat(document.getElementById('shapeRotation').value),
+                // The spread operator (...) combined with logical AND (&&) is a concise way to
+                // conditionally include an object property. If shapeType is 'pattern',
+                // it spreads {patternScale: value} into our params object.
+                // If false, it spreads nothing (undefined), effectively omitting the property.
+                // This prevents patternScale from appearing in non-pattern shapes.
+                ...(shapeType === 'pattern' && {
+                    patternScale: parseFloat(document.getElementById('patternScale').value)
+                })
+            }
+        }
+    };
+}
+
+
+
+
+/**
+ * Path Operators
+ * Mathematical transformations that can be applied to modify how points are distributed along any path.
+ * These operators serve as middleware between raw path functions and point generation, 
+ * allowing for sophisticated point distribution effects.
+ */
+
+ const PathOperators = {
+    /**
+     * Transforms the sampling parameter t for non-linear point distribution
+     * Used by projection-enabled paths to create varying density point distributions
+     */
+    projectSampling: (params = {}) => {
+        return (t) => {
+            const circleT = t * Math.PI / 2;
+            const circleX = Math.cos(circleT);
+            return 1 - circleX;  // Transform linear t to non-linear distribution
+        };
+    },
+    
+    /**
+     * Redistributes points along a path using projection mathematics
+     * Applied to existing point sets to modify their spacing while maintaining path shape
+     */
+    projectPoints: (params = {}) => {
+        const {
+            projectionRadius = 100
+        } = params;
+        
+        return (points) => {
+            // Calculate total path length for normalization
+            const totalLength = points[points.length - 1].x - points[0].x;
+            
+            return points.map(point => {
+                // Convert to 0-1 range
+                const t = (point.x - points[0].x) / totalLength;
+                
+                // Apply projection transform
+                const circleT = t * Math.PI / 2;
+                const circleX = Math.cos(circleT);
+                const projectedT = 1 - circleX;
+                
+                return {
+                    x: points[0].x + (projectedT * totalLength),
+                    y: point.y,
+                    angle: point.angle
+                };
+            });
+        };
+    }
+};
+
+
+
+
+
+/**
+ * Path Functions
+ * 
+ * A path is a mathematical function that maps a parameter t [0,1] to a point (x,y) and angle
+ * in 2D space. The angle represents the tangent to the path at that point, which determines
+ * shape orientation. Paths can be simple (linear) or complex (spiral, bezier).
+ *
+ * To better understand this with a simple an example consider a circle in your mind.
+ * This is the path our shapes will follow. Now let's put 12 dots on that path just
+ * like the points on a clock they are equally distributed based upon that path.
+ * Those dots could actually be any shape, like a paisley.
+ *
+ * We can rotate those points along the circle and define our "12-o-clock" position
+ * to be shifted for example to "12:01" as the starting point. This is done with the angle.
+ *
+ * We can create more complex distributions of those 12 dots along the circle by using
+ * "projections" that change how we sample the points and when.
+ * 
+ * Each path function returns a function of t that computes coordinates and orientation
+ * for a point at that position along the path.
+ */
+
+ const PathFunctions = {
+    /**
+     * Generates points along a straight line with uniform spacing
+     * Base case path function that provides reference for more complex paths
+     */
+    linear: (params = {}) => {
+        const { 
+            length = 280,
+            angle = 0
+        } = params;
+        
+        return (t) => ({
+            x: (t - 0.5) * length,  // Center the line by going from -length/2 to length/2
+            y: 0,
+            angle: angle
+        });
+    },
+    
+    /**
+     * Creates a line with optional non-uniform point distribution
+     * Extends linear path by allowing projected spacing for density control
+     */
+    projectedLine: (params = {}) => {
+        const {
+            length = 280,
+            angle = 0
+        } = params;
+        
+        if (params.useProjection) {
+            const projectT = PathOperators.projectSampling({});
+            return (t) => {
+                const projectedT = projectT(t);
+                const x = (projectedT - 0.5) * length;
+                return {
+                    x,
+                    y: 0,
+                    angle: angle
+                };
+            };
+        } else {
+            return PathFunctions.linear(params);
+        }
+    },
+
+    /**
+     * Generates points along a sine wave with controllable amplitude and frequency
+     * Creates cyclic wave patterns common in Mehndi designs
+     */
+    sine: (params = {}) => {
+        const {
+            length = 280,
+            amplitude = 50,
+            frequency = 2,
+            phase = 0
+        } = params;
+        
+        return (t) => {
+            const x = (t - 0.5) * length;
+            const y = amplitude * Math.sin(frequency * Math.PI * t + phase);
+            const dy = amplitude * frequency * Math.PI * Math.cos(frequency * Math.PI * t + phase);
+            const angle = Math.atan2(dy, length);
+            
+            return { x, y, angle };
+        };
+    },
+    
+    /**
+     * Creates various types of spiral paths with controllable growth
+     * Fundamental to many Mehndi patterns, especially center-focused designs
+     */
+    spiral: (params = {}) => {
+        const {
+            startRadius = 10,
+            endRadius = 150,
+            revolutions = 1.5,
+            growthRate = 0.15,
+            type = 'logarithmic'
+        } = params;
+        
+        switch(type) {
+            case 'logarithmic':
+                return (t) => {
+                    const theta = t * revolutions * 2 * Math.PI;
+                    const radius = startRadius * Math.exp(growthRate * theta);
+                    const clampedRadius = Math.min(radius, endRadius);
+                    
+                    return {
+                        x: clampedRadius * Math.cos(theta),
+                        y: clampedRadius * Math.sin(theta),
+                        angle: theta + Math.atan(growthRate)
+                    };
+                };
+                
+            case 'golden':
+                return (t) => {
+                    const phi = (1 + Math.sqrt(5)) / 2;
+                    const theta = t * revolutions * 2 * Math.PI;
+                    const radius = startRadius * Math.pow(phi, theta / (Math.PI/2));
+                    const clampedRadius = Math.min(radius, endRadius);
+                    
+                    return {
+                        x: clampedRadius * Math.cos(theta),
+                        y: clampedRadius * Math.sin(theta),
+                        angle: theta + Math.atan(Math.log(phi) / (Math.PI/2))
+                    };
+                };
+                
+            case 'arithmetic':
+                return (t) => {
+                    const theta = t * revolutions * 2 * Math.PI;
+                    const radius = startRadius + (endRadius - startRadius) * t;
+                    
+                    return {
+                        x: radius * Math.cos(theta),
+                        y: radius * Math.sin(theta),
+                        angle: theta + Math.PI/2
+                    };
+                };
+        }
+    },
+    
+    /**
+     * Generates points along a circular path
+     * Used for creating circular borders and cyclic patterns
+     */
+    circle: (params = {}) => {
+        const {
+            radius = 100,
+            startAngle = 0
+        } = params;
+        
+        return (t) => {
+            const angle = startAngle + t * Math.PI * 2;
+            return {
+                x: radius * Math.cos(angle),
+                y: radius * Math.sin(angle),
+                angle: angle + Math.PI/2
+            };
+        };
+    },
+
+    /**
+     * Creates cubic or quadratic Bézier curves with control points
+     * Enables smooth, flowing curves essential for organic Mehndi patterns
+     */
+    bezier: (params = {}) => {
+        const {
+            type = 'cubic',
+            start = { x: -140, y: 0 },
+            end = { x: 140, y: 0 },
+            control1 = { x: -70, y: -100 },
+            control2 = { x: 70, y: -100 },
+            useProjection = false
+        } = params;
+        
+        const bezierFn = (t) => {
+            if (type === 'cubic') {
+                const mt = 1 - t;
+                const mt2 = mt * mt;
+                const mt3 = mt2 * mt;
+                const t2 = t * t;
+                const t3 = t2 * t;
+                
+                const x = mt3 * start.x + 
+                         3 * mt2 * t * control1.x + 
+                         3 * mt * t2 * control2.x + 
+                         t3 * end.x;
+                         
+                const y = mt3 * start.y + 
+                         3 * mt2 * t * control1.y + 
+                         3 * mt * t2 * control2.y + 
+                         t3 * end.y;
+                
+                const dx = -3 * mt2 * start.x +
+                          (3 * mt2 - 6 * mt * t) * control1.x +
+                          (-3 * t2 + 6 * mt * t) * control2.x +
+                          3 * t2 * end.x;
+                          
+                const dy = -3 * mt2 * start.y +
+                          (3 * mt2 - 6 * mt * t) * control1.y +
+                          (-3 * t2 + 6 * mt * t) * control2.y +
+                          3 * t2 * end.y;
+                
+                return {
+                    x,
+                    y,
+                    angle: Math.atan2(dy, dx)
+                };
+            } else { // quadratic
+                const mt = 1 - t;
+                const mt2 = mt * mt;
+                const t2 = t * t;
+                
+                const x = mt2 * start.x + 
+                         2 * mt * t * control1.x + 
+                         t2 * end.x;
+                         
+                const y = mt2 * start.y + 
+                         2 * mt * t * control1.y + 
+                         t2 * end.y;
+                
+                const dx = 2 * (mt * (control1.x - start.x) + 
+                          t * (end.x - control1.x));
+                          
+                const dy = 2 * (mt * (control1.y - start.y) + 
+                          t * (end.y - control1.y));
+                
+                return {
+                    x,
+                    y,
+                    angle: Math.atan2(dy, dx)
+                };
+            }
+        };
+
+        if (useProjection) {
+            const projectT = PathOperators.projectSampling({});
+            return (t) => bezierFn(projectT(t));
+        }
+        
+        return bezierFn;
+    },
+
+    /**
+     * Generates points distributed on a sphere with perspective projection
+     * Creates 3D-like effects for complex mandala patterns
+     */
+    spherical: (params = {}) => {
+        const {
+            radius = 100,
+            revolutions = 1
+        } = params;
+
+        return (t) => {
+            const phi = Math.PI * (3 - Math.sqrt(5));
+            const y = 1 - (t * 2);
+            const radius_at_y = Math.sqrt(1 - y * y);
+            const theta = t * revolutions * phi * 2 * Math.PI;
+            
+            const x = radius * radius_at_y * Math.cos(theta);
+            const z = radius * radius_at_y * Math.sin(theta);
+            const sphereY = radius * y;
+
+            const scale_factor = 50 / (50 - z * 0.5);
+            
+            return {
+                x: x * scale_factor,
+                y: sphereY * scale_factor,
+                angle: Math.atan2(y, radius_at_y)
+            };
+        };
+    },
+
+    /**
+     * Creates stereographic projection of spherical points onto 2D plane
+     * Enables complex geometric patterns based on spherical mathematics
+     */
+    stereo3dSphereTo2d: (params = {}) => {
+        const {
+            radius = 100,
+            projectionScale = 0.5,
+            revolutions = 1
+        } = params;
+
+        return (t) => {
+            const phi = Math.PI * (3 - Math.sqrt(5));
+            const y = 1 - (t * 2);
+            const radius_at_y = Math.sqrt(1 - y * y);
+            const theta = t * revolutions * phi * 2 * Math.PI;
+            
+            const x = radius_at_y * Math.cos(theta);
+            const z = radius_at_y * Math.sin(theta);
+            
+            if (y > 0.95) return { x: 0, y: 0, angle: 0 };
+            
+            const projection_factor = projectionScale * (2 / (1 - y));
+            const projected_x = x * projection_factor;
+            const projected_y = z * projection_factor;
+            
+            return {
+                x: projected_x * radius,
+                y: projected_y * radius,
+                angle: Math.atan2(z, x) + Math.PI/2
+            };
+        };
+    }
+};
+
+
+
+
+
+
+/**
+ * Shape Definitions
+ * 
+ * Shapes are the visible elements placed along a path to create Mehndi patterns.
+ * Each shape is an SVG element positioned and oriented according to its path point.
+ * 
+ * Consider our clock example: if we replaced each number with a teardrop shape,
+ * the shape's point would face outward from the center because the angle at each
+ * point is tangent to the circle. The size parameter would control how large each
+ * teardrop appears, while maintaining its position at the "hour" mark.
+ * 
+ * Shapes can be simple (dots, circles) or complex (paisley, patterns). A pattern
+ * shape is actually a complete pattern itself, enabling recursive designs where
+ * each point on a path can contain an entire sub-pattern, which as we know can
+ * actually also be a list of patterns itself.
+ */
+
+ const Shapes = {
+    /**
+     * Creates a simple filled circle at the point
+     * Used as a basic element and for testing path distributions
+     */
+    dot: {
+        generate: (point, params = {}) => {
+            const {
+                size = 5,
+                base_stroke = 2
+            } = params;
+
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", point.x);
+            circle.setAttribute("cy", point.y);
+            circle.setAttribute("r", size);
+            circle.setAttribute("fill", "black");
+            return circle;
+        }
+    },
+
+    /**
+     * Creates an outlined circle at the point
+     * Basic decorative element common in Mehndi borders
+     */
+    circle: {
+        generate: (point, params = {}) => {
+            const {
+                size = 5,
+                base_stroke = 2
+            } = params;
+
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            circle.setAttribute("cx", point.x);
+            circle.setAttribute("cy", point.y);
+            circle.setAttribute("r", size);
+            circle.setAttribute("stroke", "black");
+            circle.setAttribute("stroke-width", base_stroke);
+            circle.setAttribute("fill", "none");
+            return circle;
+        }
+    },
+
+    /**
+     * Creates a teardrop shape oriented along the path
+     * Fundamental Mehndi shape used in many traditional patterns
+     */
+    teardrop: {
+        generate: (point, params = {}) => {
+            const {
+                size = 5,
+                base_stroke = 2,
+                rotation = 0
+            } = params;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            
+            const pathData = `M 0 0 
+                q ${size/2} ${size/2}, 0 ${size}
+                q ${-size/2} ${-size/2}, 0 ${-size} z`;
+            
+            path.setAttribute("d", pathData);
+            
+            const transform = `translate(${point.x} ${point.y}) ` +
+                            `rotate(${point.angle * 180/Math.PI})`;
+            
+            path.setAttribute("transform", transform);
+            path.setAttribute("stroke", "black");
+            path.setAttribute("stroke-width", base_stroke);
+            path.setAttribute("fill", "none");
+            
+            return path;
+        }
+    },
+
+    /**
+     * Creates a paisley motif at each point
+     * Classic Mehndi design element with characteristic curved tail
+     */
+    paisley: {
+        generate: (point, params = {}) => {
+            const {
+                size = 5,
+                base_stroke = 2,
+                rotation = 180
+            } = params;
+            
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            
+            const pathData = `M 0 0 
+                c ${size/2} ${-size/2}, ${size} ${-size/4}, ${size} ${size/2}
+                c 0 ${size/2}, ${-size/2} ${size}, ${-size} ${size}
+                c ${-size/2} 0, ${-size} ${-size/2}, ${-size} ${-size}
+                c 0 ${-size/2}, ${size/2} ${-size}, ${size} ${-size/2}`;
+            
+            path.setAttribute("d", pathData);
+            
+            const transform = `translate(${point.x} ${point.y}) ` +
+                             `rotate(${point.angle * 180/Math.PI}) ` +
+                             `rotate(${rotation})`;
+            
+            path.setAttribute("transform", transform);
+            path.setAttribute("stroke", "black");
+            path.setAttribute("stroke-width", base_stroke);
+            path.setAttribute("fill", "none");
+            
+            return path;
+        }
+    },
+
+    /**
+     * Creates a petal shape at each point
+     * Used for flower motifs and organic patterns
+     */
+    petal: {
+        generate: (point, params = {}) => {
+            const {
+                size = 5,
+                base_stroke = 2,
+                rotation = 0
+            } = params;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            
+            const pathData = `M 0 0
+                c ${size/4} ${-size/2}, ${size/2} ${-size/2}, ${size/2} 0
+                c 0 ${size/2}, ${-size/4} ${size/2}, ${-size/2} 0
+                c ${-size/4} ${-size/2}, ${-size/2} ${-size/2}, ${-size/2} 0
+                c 0 ${size/2}, ${size/4} ${size/2}, ${size/2} 0 z`;
+            
+            path.setAttribute("d", pathData);
+            
+            const transform = `translate(${point.x} ${point.y}) ` +
+                            `rotate(${point.angle * 180/Math.PI})`;
+            
+            path.setAttribute("transform", transform);
+            path.setAttribute("stroke", "black");
+            path.setAttribute("stroke-width", base_stroke);
+            path.setAttribute("fill", "none");
+            
+            return path;
+        }
+    },
+
+    /**
+     * Creates a complete pattern as a shape
+     * Enables recursive pattern generation for complex mandala-like designs
+     */
+    pattern: {
+        generate: (point, params = {}) => {
+            const {
+                patterns = savedPatterns,
+                size = 5,
+                base_stroke = 2,
+                patternScale = 0.3,
+                rotation = 0
+            } = params;
+
+            const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            
+            patterns.forEach(pattern => {
+                const pathFn = PathFunctions[pattern.path.type](pattern.path.params);
+                const patternPoints = generatePoints(
+                    pathFn, 
+                    pattern.sampling.numPoints,
+                    pattern.transform
+                );
+
+                patternPoints.forEach(patternPoint => {
+                    const centeredPoint = {
+                        x: patternPoint.x - VISUALIZATION_CENTER_X,
+                        y: patternPoint.y - VISUALIZATION_CENTER_Y,
+                        angle: patternPoint.angle
+                    };
+                    
+                    const shape = Shapes[pattern.shape.type].generate(
+                        centeredPoint, 
+                        pattern.shape.params
+                    );
+                    group.appendChild(shape);
+                });
+            });
+
+            group.setAttribute("transform", 
+                `translate(${point.x} ${point.y}) ` +
+                `rotate(${point.angle * 180 / Math.PI}) ` +
+                `scale(${patternScale})`
+            );
+
+            return group;
+        }
+    }
+};
+
+
+
+
+
+/**
+ * Visualization Functions
+ * 
+ * These functions handle the rendering of patterns to SVG canvases. They must handle
+ * both simple patterns (shapes along a path) and complex recursive patterns where
+ * each shape might itself be a pattern or list of patterns.
+ * 
+ * The visualization maintains two canvases:
+ * 1. Current pattern canvas - shows the pattern being edited
+ * 2. Combined patterns canvas - shows current pattern plus all saved patterns,
+ *    demonstrating how patterns can be layered to create complex mandalas
+ */
+
+/**
+ * Renders a single pattern's path and shapes to an SVG canvas
+ * Primary visualization function for the current pattern being edited
+ */
+function visualizePath(points, pattern, svgId) {
+    const svg = document.getElementById(svgId);
+    svg.innerHTML = '';
+
+    // Draw the path as a reference line
+    const pathElement = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    let pathData = `M ${points[0].x} ${points[0].y}`;
+    points.forEach((point, i) => {
+        if (i > 0) pathData += ` L ${point.x} ${point.y}`;
+    });
+    pathElement.setAttribute("d", pathData);
+    pathElement.setAttribute("stroke", "black");
+    pathElement.setAttribute("stroke-width", "1");
+    pathElement.setAttribute("fill", "none");
+    svg.appendChild(pathElement);
+
+    // Draw shapes along the path
+    if (pattern && pattern.shape) {
+        points.forEach(point => {
+            if (Shapes[pattern.shape.type]) {
+                const shape = Shapes[pattern.shape.type].generate(
+                    point, 
+                    pattern.shape.params
+                );
+                svg.appendChild(shape);
+            }
+        });
+    }
+}
+
+/**
+ * Renders multiple patterns to a single SVG canvas
+ * Used for the combined view showing how patterns layer together
+ */
+function visualizeMultiplePatterns(points, patterns, svgId) {
+    const svg = document.getElementById(svgId);
+    svg.innerHTML = '';
+
+    // Track point count to associate points with their patterns
+    points.forEach((point, index) => {
+        let pointCount = 0;
+        let currentPattern = patterns[0];
+        
+        // Find which pattern this point belongs to
+        for (const pattern of patterns) {
+            pointCount += pattern.sampling.numPoints;
+            if (index < pointCount) {
+                currentPattern = pattern;
+                break;
+            }
+        }
+
+        // Generate and append the appropriate shape
+        if (Shapes[currentPattern.shape.type]) {
+            const shape = Shapes[currentPattern.shape.type].generate(
+                point, 
+                currentPattern.shape.params
+            );
+            svg.appendChild(shape);
+        }
+    });
+}
+
+/**
+ * Updates the visual state of path-specific controls
+ * Called when path type changes to show/hide relevant controls
+ */
+function updateControls() {
+    const pathType = document.getElementById('pathType').value;
+    
+    // Show/hide path-specific control groups
+    document.getElementById('sphericalControls').style.display = 
+        pathType === 'spherical' ? 'block' : 'none';
+    document.getElementById('stereoControls').style.display = 
+        pathType === 'stereo3dSphereTo2d' ? 'block' : 'none';
+    document.getElementById('spiralControls').style.display = 
+        pathType === 'spiral' ? 'block' : 'none';
+    document.getElementById('bezierControls').style.display = 
+        pathType === 'bezier' ? 'block' : 'none';
+    document.getElementById('projectionControls').style.display = 
+        pathType === 'projectedLine' ? 'block' : 'none';
+}
+
+/**
+ * Updates both canvases based on current state
+ * Central update function called by event listeners when any parameter changes
+ */
+function updatePath() {
+
+    const pathType = document.getElementById('pathType').value;
+    const numPoints = parseInt(document.getElementById('points').value);
+    const transformParams = {
+        scale: parseFloat(document.getElementById('scale').value) / 100,
+        rotation: parseFloat(document.getElementById('rotation').value),
+        xOffset: parseFloat(document.getElementById('xOffset').value),
+        yOffset: parseFloat(document.getElementById('yOffset').value)
+    };
+
+    // Update current pattern state
+    currentPattern = captureCurrentPattern();
+    
+    // Generate and visualize current pattern
+    const pathFn = PathFunctions[pathType](currentPattern.path.params);
+    const points = generatePoints(pathFn, numPoints, transformParams);
+    visualizePath(points, currentPattern, 'hennaPattern');
+
+    // Handle combined visualization
+    let combinedPoints = [...points];
+    let combinedPatterns = [currentPattern];
+
+    // Add points and patterns for saved patterns
+    if (savedPatterns.length > 0) {
+        savedPatterns.forEach(pattern => {
+            const patternFn = PathFunctions[pattern.path.type](pattern.path.params);
+            const patternPoints = generatePoints(
+                patternFn, 
+                pattern.sampling.numPoints, 
+                pattern.transform
+            );
+            combinedPoints.push(...patternPoints);
+        });
+        combinedPatterns.push(...savedPatterns);
+    }
+
+    // Visualize combined patterns or clear second canvas if no saved patterns
+    if (combinedPatterns.length > 0) {
+        visualizeMultiplePatterns(combinedPoints, combinedPatterns, 'hennaPattern2');
+    } else {
+        const svg2 = document.getElementById('hennaPattern2');
+        svg2.innerHTML = '';
+    }
+}
+
+
+
+
+
+
+/**
+ * Event Handlers and Initialization
+ * 
+ * This section manages all user interactions with the interface. The event handling
+ * follows a simple pattern:
+ * 1. User interacts with a control (slider, dropdown, button)
+ * 2. Event handler updates relevant display values
+ * 3. Handler calls updatePath() to refresh visualization
+ * 4. Special cases (like saving patterns) perform additional operations
+ * 
+ * Control values flow through these handlers into the pattern configuration,
+ * which then flows through the visualization pipeline:
+ * control value -> pattern config -> path calculation -> shape generation -> SVG
+ */
+
+// Initialize export button in UI
+//const exportButton = document.createElement('button');
+//exportButton.id = 'exportCombined';
+//exportButton.textContent = 'Export Combined Patterns';
+//document.querySelector('.pattern-header').appendChild(exportButton);
+
+// Path Controls
+
+// Path type selector - determines mathematical function for point distribution
+document.getElementById('pathType').addEventListener('change', () => {
+    updateControls();
+    updatePath();
+});
+
+// Number of points - controls density of shapes along path
+document.getElementById('points').addEventListener('input', (e) => {
+    document.getElementById('pointsValue').textContent = e.target.value;
+    updatePath();
+});
+
+// Transform Controls - affect entire pattern position and orientation
+['scale', 'rotation', 'xOffset', 'yOffset'].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+        element.addEventListener('input', (e) => {
+            // Display with appropriate unit (%, °, or raw number)
+            const displayValue = id === 'scale' ? e.target.value + '%' : 
+                               id === 'rotation' ? e.target.value + '°' : 
+                               e.target.value;
+            document.getElementById(id + 'Value').textContent = displayValue;
+            updatePath();
+        });
+    }
+});
+
+// Shape Controls
+
+// Shape type selector - changes visual element placed at each point
+document.getElementById('shapeType').addEventListener('change', (e) => {
+    // Toggle pattern-specific controls visibility
+    document.getElementById('patternShapeControls').style.display = 
+        e.target.value === 'pattern' ? 'block' : 'none';
+    updatePath();
+});
+
+// Pattern scale - only active when shape type is 'pattern'
+document.getElementById('patternScale').addEventListener('input', (e) => {
+    document.getElementById('patternScaleValue').textContent = e.target.value;
+    updatePath();
+});
+
+// Base shape size - affects all shape types
+document.getElementById('shapeSize').addEventListener('input', (e) => {
+    document.getElementById('shapeSizeValue').textContent = e.target.value;
+    updatePath();
+});
+
+// Shape rotation - orients individual shapes relative to path angle
+document.getElementById('shapeRotation').addEventListener('input', function(e) {
+    const rotation = parseInt(e.target.value);
+    document.getElementById('shapeRotationValue').textContent = rotation;
+    updatePath();
+});
+
+// Pattern Management
+
+// Save button - adds current pattern to saved patterns list
+document.getElementById('savePattern').addEventListener('click', () => {
+    const patternToSave = JSON.parse(JSON.stringify(currentPattern));
+    savedPatterns.push(patternToSave);
+    updatePatternList();
+    updatePath();
+});
+
+// Path-Specific Controls
+
+// Spiral type selector - changes spiral growth pattern
+document.getElementById('spiralType').addEventListener('change', updatePath);
+
+// Bezier curve type - toggles between quadratic and cubic
+document.getElementById('bezierType').addEventListener('change', updatePath);
+
+// Bezier control points - define curve shape
+['control1X', 'control1Y', 'control2X', 'control2Y'].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+        element.addEventListener('input', updatePath);
+    }
+});
+
+// Projection toggle - enables non-uniform point distribution
+document.getElementById('useProjection').addEventListener('change', updatePath);
+
+// Numeric inputs for various path-specific parameters
+[
+    'growthRate',     // Controls spiral expansion
+    'spiralRevs',     // Number of spiral revolutions
+    'sphereRevs',     // Revolutions in spherical projection
+    'sphereRadius',   // Size of spherical projection
+    'projectionScale',// Scale factor for projections
+    'control1X',      // Bezier control point 1 X
+    'control1Y',      // Bezier control point 1 Y
+    'control2X',      // Bezier control point 2 X
+    'control2Y'       // Bezier control point 2 Y
+].forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+        element.addEventListener('input', (e) => {
+            document.getElementById(id + 'Value').textContent = e.target.value;
+            updatePath();
+        });
+    }
+});
+
+/**
+ * Export functionality - saves current state as HTML with embedded SVG
+ * Creates a self-contained document with pattern data and visualization
+ */
+ function exportCombinedPatterns() {
+    const combinedSvg = document.getElementById('hennaPattern2');
+    
+    const metadata = {
+        patterns: savedPatterns,
+        timestamp: new Date().toISOString()
+    };
+
+    // Generate pattern log using formatPatternDisplay for each pattern
+    const patternLog = savedPatterns.map((pattern, index) => {
+        // Ensure we're passing both pattern and index to get the correct format
+        return formatPatternDisplay(pattern, index);
+    }).join('\n');
+    
+    //This block of code may be intimidating. It creates the necessary html for our exported document to
+    //view the SVG as a canvas. To better understand it, the best approach would be to look at the html
+    //in an actual export. This reflects the type of structure you see in back-end to front-end.
+    //The back-end has to understand the form of the HTML (similar to our string literal).
+    //The front-end interprets it similar to the actual HTML SVG file we generate and ultimately load
+    //into a browser.
+    //
+    //Sometimes all of the unnecessary whitespace would be removed and the variables even renamed
+    //to take up less space. This is a "minimized" version of the same code.
+    const htmlContent = `<!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Henna Pattern Visualization</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 20px;
+                font-family: Arial, sans-serif;
+                background-color: #f0f0f0;
+            }
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background-color: white;
+                padding: 20px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .canvas-container {
+                margin: 20px 0;
+                border: 1px solid #ddd;
+                padding: 10px;
+            }
+            .metadata {
+                font-family: monospace;
+                background-color: #f5f5f5;
+                padding: 10px;
+                border-radius: 4px;
+                margin-top: 20px;
+            }
+            .pattern-log {
+                white-space: pre-line;
+                margin-bottom: 20px;
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+            }
+            .json-data {
+                white-space: pre;
+                overflow-x: auto;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>Henna Pattern Visualization</h1>
+            <div class="canvas-container">
+                ${combinedSvg.outerHTML}
+            </div>
+            <div class="metadata">
+                <h2>Pattern Data</h2>
+                <div class="pattern-log">
+                    <h3>Pattern Summary:</h3>
+                    ${patternLog}
+                </div>
+                <div class="json-data">
+                    <h3>Full Pattern Data:</h3>
+                    <pre>${JSON.stringify(metadata, null, 2)}</pre>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>`;
+
+    // Create and trigger download
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `henna-patterns.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+// Add export handler
+document.getElementById('exportCombined').addEventListener('click', exportCombinedPatterns);
+
+// Initialize application state
+updateControls();    // Show/hide path-specific controls
+updatePath();        // Generate initial visualization
+updatePatternList(); // Initialize empty pattern list
+        </script>
+    </body>
+</html>
